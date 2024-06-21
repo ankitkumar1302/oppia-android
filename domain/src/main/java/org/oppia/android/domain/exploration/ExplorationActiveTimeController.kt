@@ -3,6 +3,7 @@ package org.oppia.android.domain.exploration
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
@@ -19,6 +20,8 @@ import org.oppia.android.util.data.AsyncResult
 import org.oppia.android.util.data.DataProvider
 import org.oppia.android.util.data.DataProviders
 import org.oppia.android.util.data.DataProviders.Companion.transform
+import org.oppia.android.util.platformparameter.EnableNpsSurvey
+import org.oppia.android.util.platformparameter.PlatformParameterValue
 import org.oppia.android.util.system.OppiaClock
 import org.oppia.android.util.threading.BackgroundDispatcher
 import java.util.UUID
@@ -57,7 +60,8 @@ class ExplorationActiveTimeController @Inject constructor(
   private val dataProviders: DataProviders,
   private val oppiaLogger: OppiaLogger,
   private val exceptionsController: ExceptionsController,
-  @BackgroundDispatcher private val backgroundCoroutineDispatcher: CoroutineDispatcher
+  @BackgroundDispatcher private val backgroundCoroutineDispatcher: CoroutineDispatcher,
+  @EnableNpsSurvey private val enableNpsSurvey: PlatformParameterValue<Boolean>
 ) : ExplorationProgressListener, ApplicationLifecycleListener {
   private var isAppInForeground: Boolean = false
   private var explorationStarted: Boolean = false
@@ -82,27 +86,35 @@ class ExplorationActiveTimeController @Inject constructor(
 
   override fun onExplorationStarted(profileId: ProfileId, topicId: String) {
     this.explorationStarted = true
-    startSessionTimer(
-      profileId = profileId,
-      topicId = topicId,
-      isAppInForeground = getIsAppInForeground(),
-      explorationStarted = true
-    )
+    if (enableNpsSurvey.value) {
+      startSessionTimer(
+        profileId = profileId,
+        topicId = topicId,
+        isAppInForeground = getIsAppInForeground(),
+        explorationStarted = true
+      )
+    }
   }
 
   override fun onExplorationEnded() {
     this.explorationStarted = false
-    stopSessionTimerAsync(getIsExplorationStarted())
+    if (enableNpsSurvey.value) {
+      stopSessionTimerAsync(getIsExplorationStarted())
+    }
   }
 
   override fun onAppInForeground() {
     this.isAppInForeground = true
-    resumeSessionTimer(getIsExplorationStarted())
+    if (enableNpsSurvey.value) {
+      resumeSessionTimer(getIsExplorationStarted())
+    }
   }
 
   override fun onAppInBackground() {
     this.isAppInForeground = false
-    pauseSessionTimerAsync()
+    if (enableNpsSurvey.value) {
+      pauseSessionTimerAsync()
+    }
   }
 
   private fun getIsAppInForeground() = this.isAppInForeground
@@ -206,6 +218,7 @@ class ExplorationActiveTimeController @Inject constructor(
     return resumeSessionTimerResultFlow.convertToSessionProvider(RESUME_SESSION_TIMER_PROVIDER_ID)
   }
 
+  @OptIn(ObsoleteCoroutinesApi::class)
   private fun createControllerCommandActor(): SendChannel<ControllerMessage<*>> {
     lateinit var controllerState: ControllerState
     // Use an unlimited capacity buffer so that commands can be sent asynchronously without blocking
@@ -414,21 +427,15 @@ class ExplorationActiveTimeController @Inject constructor(
     message: ControllerMessage<T>,
     lazyFailureMessage: () -> String
   ) {
-    // TODO(#4119): Switch this to use trySend(), instead, which is much cleaner and doesn't require
-    //  catching an exception.
-    val flowResult: AsyncResult<T> = try {
-      val commandQueue = mostRecentCommandQueue
-      when {
-        commandQueue == null ->
-          AsyncResult.Failure(IllegalStateException("Session isn't initialized yet."))
-        !commandQueue.offer(message) ->
-          AsyncResult.Failure(IllegalStateException(lazyFailureMessage()))
-        // Ensure that the result is first reset since there will be a delay before the message is
-        // processed (if there's a flow).
-        else -> AsyncResult.Pending()
-      }
-    } catch (e: Exception) {
-      AsyncResult.Failure(e)
+    val commandQueue = mostRecentCommandQueue
+    val flowResult: AsyncResult<T> = when {
+      commandQueue == null ->
+        AsyncResult.Failure(IllegalStateException("Session isn't initialized yet."))
+      !commandQueue.trySend(message).isSuccess ->
+        AsyncResult.Failure(IllegalStateException(lazyFailureMessage()))
+      // Ensure that the result is first reset since there will be a delay before the message is
+      // processed (if there's a flow).
+      else -> AsyncResult.Pending()
     }
 
     // This must be assigned separately since flowResult should always be calculated, even if

@@ -15,6 +15,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.widget.TextView
+import androidx.core.view.ViewCompat
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
 import org.oppia.android.util.R
@@ -164,13 +165,16 @@ class UrlImageParser private constructor(
     return CustomImageTarget(createTarget(configuration))
   }
 
+  // T must be bounded to a non-null value per https://youtrack.jetbrains.com/issue/KT-50961 and
+  // https://youtrack.jetbrains.com/issue/KT-26245 to ensure that the Kotlin compiler can be
+  // confident an NPE can't unwittingly happen.
   /**
    * A [CustomTarget] that can automatically resized, or align, the loaded image as needed. This
    * class coordinates with a [ProxyDrawable] defined as part of the specified
    * [TargetConfiguration], and ensures that the drawable is only adjusted when it's safe to do so
    * per the holding TextView's lifecycle.
    */
-  private sealed class AutoAdjustingImageTarget<T, D : Drawable>(
+  private sealed class AutoAdjustingImageTarget<T : Any, D : Drawable>(
     private val targetConfiguration: TargetConfiguration
   ) : CustomTarget<T>() {
 
@@ -186,7 +190,7 @@ class UrlImageParser private constructor(
       // No resources to clear.
     }
 
-    override fun onResourceReady(resource: T, transition: Transition<in T>?) {
+    override fun onResourceReady(resource: T, transition: Transition<in T?>?) {
       val drawable = retrieveDrawable(resource)
       htmlContentTextView.post {
         htmlContentTextView.width { viewWidth ->
@@ -229,10 +233,15 @@ class UrlImageParser private constructor(
      * A [AutoAdjustingImageTarget] that may automatically center and/or resize loaded images to
      * display them in a "block" fashion.
      */
-    sealed class BlockImageTarget<T, D : Drawable>(
+    sealed class BlockImageTarget<T : Any, D : Drawable>(
       targetConfiguration: TargetConfiguration,
       private val autoResizeImage: Boolean
     ) : AutoAdjustingImageTarget<T, D>(targetConfiguration) {
+
+      private fun isRTLMode(): Boolean {
+        return ViewCompat.getLayoutDirection(htmlContentTextView) == ViewCompat
+          .LAYOUT_DIRECTION_RTL
+      }
 
       override fun computeBounds(
         context: Context,
@@ -262,6 +271,8 @@ class UrlImageParser private constructor(
 
         var drawableWidth = drawable.intrinsicWidth.toFloat()
         var drawableHeight = drawable.intrinsicHeight.toFloat()
+        val maxContentItemPadding =
+          context.resources.getDimensionPixelSize(R.dimen.maximum_content_item_padding)
         if (autoResizeImage) {
           // Treat the drawable's dimensions as dp so that the image scales for higher density
           // displays.
@@ -285,8 +296,7 @@ class UrlImageParser private constructor(
             drawableHeight *= multipleFactor
             drawableWidth *= multipleFactor
           }
-          val maxContentItemPadding =
-            context.resources.getDimensionPixelSize(R.dimen.maximum_content_item_padding)
+
           val maximumImageSize = maxAvailableWidth - maxContentItemPadding
           if (drawableWidth >= maximumImageSize) {
             // The multipleFactor value is used to make sure that the aspect ratio of the image
@@ -304,11 +314,17 @@ class UrlImageParser private constructor(
             drawableWidth *= multipleFactor
           }
         }
-        val drawableLeft = if (imageCenterAlign) {
+
+        if (drawableWidth >= (maxAvailableWidth - maxContentItemPadding)) {
+          drawableWidth -= maxContentItemPadding
+        }
+
+        val drawableLeft = if (imageCenterAlign && !isRTLMode()) {
           calculateInitialMargin(maxAvailableWidth, drawableWidth)
         } else {
           0f
         }
+
         val drawableTop = 0f
         val drawableRight = drawableLeft + drawableWidth
         val drawableBottom = drawableTop + drawableHeight
@@ -354,7 +370,7 @@ class UrlImageParser private constructor(
      * that will not be resized or aligned beyond what the target itself requires, and what the
      * system performs automatically.
      */
-    class InlineTextImage<T, D : Drawable>(
+    class InlineTextImage<T : Any, D : Drawable>(
       targetConfiguration: TargetConfiguration,
       private val computeDrawable: (T) -> D,
       private val computeDimensions: (D, TextView) -> Unit,

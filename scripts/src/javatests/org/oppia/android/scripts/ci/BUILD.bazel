@@ -2,13 +2,13 @@
 Tests corresponding to developer scripts that help with continuous integration workflows.
 """
 
-load("@io_bazel_rules_kotlin//kotlin:kotlin.bzl", "kt_jvm_test")
+load("@io_bazel_rules_kotlin//kotlin:jvm.bzl", "kt_jvm_test")
 
 kt_jvm_test(
     name = "ComputeAffectedTestsTest",
     size = "large",
     srcs = ["ComputeAffectedTestsTest.kt"],
-    shard_count = 4,
+    shard_count = 24,
     deps = [
         "//scripts/src/java/org/oppia/android/scripts/ci:compute_affected_tests_lib",
         "//scripts/src/java/org/oppia/android/scripts/common:proto_string_encoder",

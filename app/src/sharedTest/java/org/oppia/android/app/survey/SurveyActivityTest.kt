@@ -61,12 +61,12 @@ import org.oppia.android.domain.oppialogger.logscheduler.MetricLogSchedulerModul
 import org.oppia.android.domain.oppialogger.loguploader.LogReportWorkerModule
 import org.oppia.android.domain.platformparameter.PlatformParameterSingletonModule
 import org.oppia.android.domain.question.QuestionModule
-import org.oppia.android.domain.topic.PrimeTopicAssetsControllerModule
 import org.oppia.android.domain.topic.TEST_EXPLORATION_ID_2
 import org.oppia.android.domain.topic.TEST_TOPIC_ID_0
 import org.oppia.android.domain.workmanager.WorkManagerConfigurationModule
 import org.oppia.android.testing.OppiaTestRule
 import org.oppia.android.testing.TestLogReportingModule
+import org.oppia.android.testing.firebase.TestAuthenticationModule
 import org.oppia.android.testing.junit.InitializeDefaultLocaleRule
 import org.oppia.android.testing.platformparameter.TestPlatformParameterModule
 import org.oppia.android.testing.robolectric.RobolectricModule
@@ -179,7 +179,7 @@ class SurveyActivityTest {
       GcsResourceModule::class, GlideImageLoaderModule::class, ImageParsingModule::class,
       HtmlParserEntityTypeModule::class, QuestionModule::class, TestLogReportingModule::class,
       AccessibilityTestModule::class, LogStorageModule::class, CachingTestModule::class,
-      PrimeTopicAssetsControllerModule::class, ExpirationMetaDataRetrieverModule::class,
+      ExpirationMetaDataRetrieverModule::class,
       ViewBindingShimModule::class, RatioInputModule::class, WorkManagerConfigurationModule::class,
       ApplicationStartupListenerModule::class, LogReportWorkerModule::class,
       HintsAndSolutionConfigModule::class, HintsAndSolutionProdModule::class,
@@ -193,7 +193,8 @@ class SurveyActivityTest {
       LoggingIdentifierModule::class, ApplicationLifecycleModule::class,
       SyncStatusModule::class, MetricLogSchedulerModule::class, TestingBuildFlavorModule::class,
       EventLoggingConfigurationModule::class, ActivityRouterModule::class,
-      CpuPerformanceSnapshotterModule::class, ExplorationProgressModule::class
+      CpuPerformanceSnapshotterModule::class, ExplorationProgressModule::class,
+      TestAuthenticationModule::class
     ]
   )
   interface TestApplicationComponent : ApplicationComponent {

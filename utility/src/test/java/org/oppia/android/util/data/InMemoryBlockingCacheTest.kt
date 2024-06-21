@@ -11,6 +11,7 @@ import dagger.Module
 import dagger.Provides
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import org.junit.Before
@@ -207,7 +208,7 @@ class InMemoryBlockingCacheTest {
     val deferredRead = cache.readIfPresentAsync()
 
     val exception =
-      assertThrows(IllegalStateException::class) { awaitCompletion(deferredRead) }
+      assertThrows<IllegalStateException>() { awaitCompletion(deferredRead) }
     assertThat(exception).hasMessageThat()
       .contains("Expected to read the cache only after it's been created")
   }
@@ -302,7 +303,7 @@ class InMemoryBlockingCacheTest {
 
     // The operation should fail since the method expects the cache to be initialized.
     val exception =
-      assertThrows(IllegalStateException::class) { awaitCompletion(deferredUpdate) }
+      assertThrows<IllegalStateException>() { awaitCompletion(deferredUpdate) }
     assertThat(exception).hasMessageThat()
       .contains("Expected to update the cache only after it's been created")
   }
@@ -422,7 +423,7 @@ class InMemoryBlockingCacheTest {
 
     // Deleting the cache should result in readIfPresent()'s expectations to fail.
     val exception =
-      assertThrows(IllegalStateException::class) { awaitCompletion(deferredRead) }
+      assertThrows<IllegalStateException>() { awaitCompletion(deferredRead) }
     assertThat(exception).hasMessageThat()
       .contains("Expected to read the cache only after it's been created")
   }
@@ -456,7 +457,7 @@ class InMemoryBlockingCacheTest {
 
     // The operation should fail since the method expects the cache to be initialized.
     val exception =
-      assertThrows(IllegalStateException::class) { awaitCompletion(deferredUpdate) }
+      assertThrows<IllegalStateException>() { awaitCompletion(deferredUpdate) }
     assertThat(exception).hasMessageThat()
       .contains("Expected to update the cache only after it's been created")
   }
@@ -667,7 +668,7 @@ class InMemoryBlockingCacheTest {
    * Waits for the specified deferred to execute after advancing test dispatcher. Without this
    * function, results cannot be observed from cache operations.
    */
-  @Suppress("EXPERIMENTAL_API_USAGE")
+  @OptIn(ExperimentalCoroutinesApi::class)
   private fun <T> awaitCompletion(deferred: Deferred<T>): T {
     testCoroutineDispatchers.runCurrent()
     return deferred.getCompleted()

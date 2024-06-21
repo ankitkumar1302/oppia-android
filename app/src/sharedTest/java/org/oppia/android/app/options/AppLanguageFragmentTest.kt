@@ -15,8 +15,6 @@ import androidx.test.espresso.matcher.ViewMatchers.isRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import dagger.Component
-import dagger.Module
-import dagger.Provides
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -70,13 +68,13 @@ import org.oppia.android.domain.oppialogger.loguploader.LogReportWorkerModule
 import org.oppia.android.domain.platformparameter.PlatformParameterModule
 import org.oppia.android.domain.platformparameter.PlatformParameterSingletonModule
 import org.oppia.android.domain.question.QuestionModule
-import org.oppia.android.domain.topic.PrimeTopicAssetsControllerModule
 import org.oppia.android.domain.workmanager.WorkManagerConfigurationModule
 import org.oppia.android.testing.BuildEnvironment
 import org.oppia.android.testing.OppiaTestRule
 import org.oppia.android.testing.RunOn
 import org.oppia.android.testing.TestLogReportingModule
 import org.oppia.android.testing.TestPlatform
+import org.oppia.android.testing.firebase.TestAuthenticationModule
 import org.oppia.android.testing.junit.InitializeDefaultLocaleRule
 import org.oppia.android.testing.profile.ProfileTestHelper
 import org.oppia.android.testing.robolectric.RobolectricModule
@@ -85,7 +83,6 @@ import org.oppia.android.testing.threading.TestDispatcherModule
 import org.oppia.android.testing.time.FakeOppiaClockModule
 import org.oppia.android.util.accessibility.AccessibilityTestModule
 import org.oppia.android.util.caching.AssetModule
-import org.oppia.android.util.caching.CacheAssetsLocally
 import org.oppia.android.util.caching.testing.CachingTestModule
 import org.oppia.android.util.gcsresource.GcsResourceModule
 import org.oppia.android.util.locale.LocaleProdModule
@@ -287,14 +284,6 @@ class AppLanguageFragmentTest {
     ApplicationProvider.getApplicationContext<TestApplication>().inject(this)
   }
 
-  @Module
-  class TestModule {
-    // Do not use caching to ensure URLs are always used as the main data source when loading audio.
-    @Provides
-    @CacheAssetsLocally
-    fun provideCacheAssetsLocally(): Boolean = false
-  }
-
   // TODO(#59): Figure out a way to reuse modules instead of needing to re-declare them.
   @Singleton
   @Component(
@@ -307,7 +296,7 @@ class AppLanguageFragmentTest {
       GlideImageLoaderModule::class, ImageParsingModule::class, HtmlParserEntityTypeModule::class,
       QuestionModule::class, TestLogReportingModule::class, AccessibilityTestModule::class,
       ImageClickInputModule::class, LogStorageModule::class, CachingTestModule::class,
-      PrimeTopicAssetsControllerModule::class, ExpirationMetaDataRetrieverModule::class,
+      ExpirationMetaDataRetrieverModule::class,
       ViewBindingShimModule::class, ApplicationStartupListenerModule::class,
       RatioInputModule::class, HintsAndSolutionConfigModule::class,
       WorkManagerConfigurationModule::class, FirebaseLogUploaderModule::class,
@@ -322,12 +311,15 @@ class AppLanguageFragmentTest {
       LoggingIdentifierModule::class, ApplicationLifecycleModule::class,
       SyncStatusModule::class, MetricLogSchedulerModule::class, TestingBuildFlavorModule::class,
       EventLoggingConfigurationModule::class, ActivityRouterModule::class,
-      CpuPerformanceSnapshotterModule::class, ExplorationProgressModule::class
+      CpuPerformanceSnapshotterModule::class, ExplorationProgressModule::class,
+      TestAuthenticationModule::class
     ]
   )
   interface TestApplicationComponent : ApplicationComponent {
     @Component.Builder
-    interface Builder : ApplicationComponent.Builder
+    interface Builder : ApplicationComponent.Builder {
+      override fun build(): TestApplicationComponent
+    }
 
     fun inject(appLanguageFragmentTest: AppLanguageFragmentTest)
   }

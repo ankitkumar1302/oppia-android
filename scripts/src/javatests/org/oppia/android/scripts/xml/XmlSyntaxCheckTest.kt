@@ -24,9 +24,7 @@ class XmlSyntaxCheckTest {
     "Refer to https://github.com/oppia/oppia-android/wiki/Static-Analysis-Checks" +
       "#xml-syntax-check for more details on how to fix this."
 
-  @Rule
-  @JvmField
-  var tempFolder = TemporaryFolder()
+  @field:[Rule JvmField] val tempFolder = TemporaryFolder()
 
   @Before
   fun setUp() {
@@ -73,15 +71,13 @@ class XmlSyntaxCheckTest {
     val tempFile = tempFolder.newFile("testfiles/TestFile.xml")
     tempFile.writeText(invalidXml)
 
-    val exception = assertThrows(Exception::class) {
-      runScript()
-    }
+    val exception = assertThrows<Exception>() { runScript() }
 
     assertThat(exception).hasMessageThat().contains(XML_SYNTAX_CHECK_FAILED_OUTPUT_INDICATOR)
     val failureMessage =
       """
       ${retrieveTestFilesDirectoryPath()}/TestFile.xml:6:8: $syntaxFailureMessage1
-      
+
       $wikiReferenceNote
       """.trimIndent()
     assertThat(outContent.toString().trim()).isEqualTo(failureMessage)
@@ -112,16 +108,14 @@ class XmlSyntaxCheckTest {
     tempFile1.writeText(invalidXmlForFile1)
     tempFile2.writeText(invalidXmlForFile2)
 
-    val exception = assertThrows(Exception::class) {
-      runScript()
-    }
+    val exception = assertThrows<Exception>() { runScript() }
 
     assertThat(exception).hasMessageThat().contains(XML_SYNTAX_CHECK_FAILED_OUTPUT_INDICATOR)
     val failureMessage =
       """
       ${retrieveTestFilesDirectoryPath()}/TestFile1.xml:4:4: $syntaxFailureMessage2
       ${retrieveTestFilesDirectoryPath()}/TestFile2.xml:6:8: $syntaxFailureMessage1
-      
+
       $wikiReferenceNote
       """.trimIndent()
     assertThat(outContent.toString().trim()).isEqualTo(failureMessage)
@@ -163,9 +157,7 @@ class XmlSyntaxCheckTest {
     tempFile2.writeText(invalidXmlForFile2)
     tempFile3.writeText(invalidXmlForFile3)
 
-    val exception = assertThrows(Exception::class) {
-      runScript()
-    }
+    val exception = assertThrows<Exception>() { runScript() }
 
     assertThat(exception).hasMessageThat().contains(XML_SYNTAX_CHECK_FAILED_OUTPUT_INDICATOR)
     val failureMessage =
@@ -173,7 +165,7 @@ class XmlSyntaxCheckTest {
       ${retrieveTestFilesDirectoryPath()}/TestFile1.xml:4:4: $syntaxFailureMessage2
       ${retrieveTestFilesDirectoryPath()}/TestFile2.xml:6:8: $syntaxFailureMessage1
       ${retrieveTestFilesDirectoryPath()}/TestFile3.xml:6:8: $syntaxFailureMessage1
-      
+
       $wikiReferenceNote
       """.trimIndent()
     assertThat(outContent.toString().trim()).isEqualTo(failureMessage)

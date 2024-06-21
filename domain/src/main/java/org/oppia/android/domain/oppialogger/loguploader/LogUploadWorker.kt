@@ -4,12 +4,12 @@ import android.content.Context
 import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
 import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.SettableFuture
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.guava.asListenableFuture
 import org.oppia.android.domain.oppialogger.analytics.AnalyticsController
+import org.oppia.android.domain.oppialogger.analytics.FirestoreDataController
 import org.oppia.android.domain.oppialogger.analytics.PerformanceMetricsController
 import org.oppia.android.domain.oppialogger.exceptions.ExceptionsController
 import org.oppia.android.domain.oppialogger.exceptions.toException
@@ -29,6 +29,7 @@ class LogUploadWorker private constructor(
   private val exceptionsController: ExceptionsController,
   private val performanceMetricsController: PerformanceMetricsController,
   private val exceptionLogger: ExceptionLogger,
+  private val dataController: FirestoreDataController,
   private val performanceMetricsEventLogger: PerformanceMetricsEventLogger,
   private val consoleLogger: ConsoleLogger,
   private val syncStatusManager: SyncStatusManager,
@@ -41,30 +42,21 @@ class LogUploadWorker private constructor(
     const val EVENT_WORKER = "event_worker"
     const val EXCEPTION_WORKER = "exception_worker"
     const val PERFORMANCE_METRICS_WORKER = "performance_metrics_worker"
+    const val FIRESTORE_WORKER = "firestore_worker"
   }
 
-  @ExperimentalCoroutinesApi
   override fun startWork(): ListenableFuture<Result> {
     val backgroundScope = CoroutineScope(backgroundDispatcher)
-    val result = backgroundScope.async {
+    // TODO(#4463): Add withTimeout() to avoid potential hanging.
+    return backgroundScope.async {
       when (inputData.getStringFromData(WORKER_CASE_KEY)) {
         EVENT_WORKER -> uploadEvents()
         EXCEPTION_WORKER -> uploadExceptions()
         PERFORMANCE_METRICS_WORKER -> uploadPerformanceMetrics()
+        FIRESTORE_WORKER -> uploadFirestoreData()
         else -> Result.failure()
       }
-    }
-
-    val future = SettableFuture.create<Result>()
-    result.invokeOnCompletion { failure ->
-      if (failure != null) {
-        future.setException(failure)
-      } else {
-        future.set(result.getCompleted())
-      }
-    }
-    // TODO(#3715): Add withTimeout() to avoid potential hanging.
-    return future
+    }.asListenableFuture()
   }
 
   /** Extracts exception logs from the cache store and logs them to the remote service. */
@@ -111,12 +103,24 @@ class LogUploadWorker private constructor(
     }
   }
 
+  /** Extracts data from offline storage and logs them to the remote service. */
+  private suspend fun uploadFirestoreData(): Result {
+    return try {
+      dataController.uploadData()
+      Result.success()
+    } catch (e: Exception) {
+      consoleLogger.e(TAG, e.toString(), e)
+      Result.failure()
+    }
+  }
+
   /** Creates an instance of [LogUploadWorker] by properly injecting dependencies. */
   class Factory @Inject constructor(
     private val analyticsController: AnalyticsController,
     private val exceptionsController: ExceptionsController,
     private val performanceMetricsController: PerformanceMetricsController,
     private val exceptionLogger: ExceptionLogger,
+    private val dataController: FirestoreDataController,
     private val performanceMetricsEventLogger: PerformanceMetricsEventLogger,
     private val consoleLogger: ConsoleLogger,
     private val syncStatusManager: SyncStatusManager,
@@ -130,6 +134,7 @@ class LogUploadWorker private constructor(
         exceptionsController,
         performanceMetricsController,
         exceptionLogger,
+        dataController,
         performanceMetricsEventLogger,
         consoleLogger,
         syncStatusManager,

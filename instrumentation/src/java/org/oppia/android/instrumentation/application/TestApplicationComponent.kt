@@ -43,8 +43,8 @@ import org.oppia.android.domain.platformparameter.PlatformParameterModule
 import org.oppia.android.domain.platformparameter.PlatformParameterSingletonModule
 import org.oppia.android.domain.platformparameter.syncup.PlatformParameterSyncUpWorkerModule
 import org.oppia.android.domain.question.QuestionModule
-import org.oppia.android.domain.topic.PrimeTopicAssetsControllerModule
 import org.oppia.android.domain.workmanager.WorkManagerConfigurationModule
+import org.oppia.android.testing.firebase.TestAuthenticationModule
 import org.oppia.android.util.accessibility.AccessibilityProdModule
 import org.oppia.android.util.caching.AssetModule
 import org.oppia.android.util.caching.CachingModule
@@ -83,7 +83,7 @@ import javax.inject.Singleton
     QuestionModule::class, DebugLogReportingModule::class,
     AccessibilityProdModule::class, ImageClickInputModule::class,
     LogStorageModule::class, IntentFactoryShimModule::class,
-    ViewBindingShimModule::class, PrimeTopicAssetsControllerModule::class,
+    ViewBindingShimModule::class,
     ExpirationMetaDataRetrieverModule::class, RatioInputModule::class,
     UncaughtExceptionLoggerModule::class, ApplicationStartupListenerModule::class,
     LogReportWorkerModule::class, WorkManagerConfigurationModule::class,
@@ -101,7 +101,8 @@ import javax.inject.Singleton
     MetricLogSchedulerModule::class, ActivityRouterModule::class,
     PerformanceMetricsAssessorModule::class, PerformanceMetricsConfigurationsModule::class,
     TestingBuildFlavorModule::class, EventLoggingConfigurationModule::class,
-    ExplorationProgressModule::class, CpuPerformanceSnapshotterModule::class
+    ExplorationProgressModule::class, CpuPerformanceSnapshotterModule::class,
+    TestAuthenticationModule::class
   ]
 )
 interface TestApplicationComponent : ApplicationComponent {

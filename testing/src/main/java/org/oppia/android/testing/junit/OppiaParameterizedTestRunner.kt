@@ -1,5 +1,7 @@
 package org.oppia.android.testing.junit
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import org.junit.runner.Description
 import org.junit.runner.Runner
 import org.junit.runner.manipulation.Filter
@@ -8,7 +10,6 @@ import org.junit.runner.manipulation.Sortable
 import org.junit.runner.manipulation.Sorter
 import org.junit.runner.notification.RunNotifier
 import org.junit.runners.Suite
-import java.lang.annotation.Repeatable
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import kotlin.reflect.KClass
@@ -28,10 +29,10 @@ import kotlin.reflect.KClass
  * necessary Bazel dependencies). However, it will only support the platform(s) selected.
  *
  * To introduce parameterized tests, add this runner along with one or more [Parameter]-annotated
- * fields and one or more [RunParameterized]-annotated methods (where each method should have
- * multiple [Iteration]s defined to describe each test iteration). Note that only strings and
- * primitive types (e.g. [Int], [Long], [Float], [Double], and [Boolean]) are supported for
- * parameter injection. Here's a simple example:
+ * fields and one or more [Iteration]-annotated methods (where each method should have multiple
+ * [Iteration]s defined to describe each test iteration). Note that only strings and primitive types
+ * (e.g. [Int], [Long], [Float], [Double], and [Boolean]) are supported for parameter injection.
+ * Here's a simple example:
  *
  * ```kotlin
  * @RunWith(OppiaParameterizedTestRunner::class)
@@ -41,11 +42,9 @@ import kotlin.reflect.KClass
  *   @Parameter var intParam: Int = Int.MIN_VALUE // Inited because primitives can't be lateinit.
  *
  *   @Test
- *   @RunParameterized(
- *     Iteration("first", "strParam=first value", "intParam=12"),
- *     Iteration("second", "strParam=second value", "intParam=-72"),
- *     Iteration("third", "strParam=third value", "intParam=15")
- *   )
+ *   @Iteration("first", "strParam=first value", "intParam=12")
+ *   @Iteration("second", "strParam=second value", "intParam=-72")
+ *   @Iteration("third", "strParam=third value", "intParam=15")
  *   fun testParams_multipleVals_isConsistent() {
  *     val result = performOperation(strParam, intParam)
  *     assertThat(result).isEqualTo(consistentExpectedValue)
@@ -57,7 +56,7 @@ import kotlin.reflect.KClass
  * specified parameter value corresponding to each iteration will be injected into the parameter
  * field for use by the test.
  *
- * Note that with Bazel specific iterations can be run by utilizing the test and iteration name,
+ * Note that with Bazel specifically iterations can be run by utilizing the test and iteration name,
  * e.g.:
  *
  * ```bash
@@ -71,11 +70,11 @@ import kotlin.reflect.KClass
  * ```
  *
  * Finally, regular tests can be added by simply using the JUnit ``Test`` annotation without also
- * annotating with [RunParameterized]. Such tests should not ever read from the
- * [Parameter]-annotated fields since there's no way to ensure what values those fields will
- * contain (thus they should be treated as undefined outside of tests that specific define their
- * value via [Iteration]).
+ * annotating with [Iteration]. Such tests should not ever read from the [Parameter]-annotated
+ * fields since there's no way to ensure what values those fields will contain (thus they should be
+ * treated as undefined outside of tests that specific define their value via [Iteration]).
  */
+@RequiresApi(Build.VERSION_CODES.N)
 class OppiaParameterizedTestRunner(private val testClass: Class<*>) : Suite(testClass, listOf()) {
   private val parameterizedMethods = computeParameterizedMethods()
   private val selectedRunnerClass by lazy { fetchSelectedRunnerPlatformClass() }
@@ -95,6 +94,7 @@ class OppiaParameterizedTestRunner(private val testClass: Class<*>) : Suite(test
 
   override fun getChildren(): MutableList<Runner> = childrenRunners.toMutableList()
 
+  @RequiresApi(Build.VERSION_CODES.N)
   private fun computeParameterizedMethods(): Map<String, ParameterizedMethod> {
     val fieldsAndParsers = fetchParameterizedFields().map { field ->
       val valueParser = ParameterValue.createParserForField(field)
@@ -184,12 +184,14 @@ class OppiaParameterizedTestRunner(private val testClass: Class<*>) : Suite(test
     }.associateBy { it.methodName }
   }
 
+  @RequiresApi(Build.VERSION_CODES.N)
   private fun fetchParameterizedFields(): List<Field> {
     return testClass.declaredFields.mapNotNull { field ->
       field.getDeclaredAnnotation(Parameter::class.java)?.let { field }
     }
   }
 
+  @RequiresApi(Build.VERSION_CODES.N)
   private fun fetchParameterizedMethodDeclarations(): List<ParameterizedMethodDeclaration> {
     return testClass.declaredMethods.mapNotNull { method ->
       method.getDeclaredAnnotationsByType(Iteration::class.java).map { parameters ->
@@ -208,6 +210,7 @@ class OppiaParameterizedTestRunner(private val testClass: Class<*>) : Suite(test
     }
   }
 
+  @RequiresApi(Build.VERSION_CODES.N)
   private fun fetchSelectedRunnerPlatformClass(): Class<*> {
     return checkNotNull(testClass.getDeclaredAnnotation(SelectRunnerPlatform::class.java)) {
       "All suites using OppiaParameterizedTestRunner must declare their base platform runner" +
@@ -242,17 +245,7 @@ class OppiaParameterizedTestRunner(private val testClass: Class<*>) : Suite(test
   @Target(AnnotationTarget.FIELD) annotation class Parameter
 
   /**
-   * Specifies that a method in a test that uses a [OppiaParameterizedTestRunner] runner should be
-   * run multiple times for each [Iteration] specified in the [value] iterations list.
-   *
-   * See the KDoc for the runner for example code.
-   */
-  @Target(AnnotationTarget.FUNCTION) annotation class RunParameterized(vararg val value: Iteration)
-
-  // TODO(#4120): Migrate to Kotlin @Repeatable once Kotlin 1.6 is used (see:
-  //  https://youtrack.jetbrains.com/issue/KT-12794).
-  /**
-   * Defines an iteration to run as part of a [RunParameterized]-annotated test method.
+   * Defines an iteration to run as part of a parameterized test method.
    *
    * See the KDoc for the runner for example code.
    *
@@ -262,7 +255,7 @@ class OppiaParameterizedTestRunner(private val testClass: Class<*>) : Suite(test
    *     a [Parameter]-annotated field and 'value' is a stringified conforming value based on the
    *     type of that field (incompatible values will result in test failures)
    */
-  @Repeatable(RunParameterized::class)
+  @Repeatable
   @Target(AnnotationTarget.FUNCTION)
   annotation class Iteration(val name: String, vararg val keyValuePairs: String)
 

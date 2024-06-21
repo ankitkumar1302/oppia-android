@@ -23,9 +23,7 @@ class AccessibilityLabelCheckTest {
     "Refer to https://github.com/oppia/oppia-android/wiki/Static-Analysis-Checks" +
       "#accessibility-label-check for more details on how to fix this."
 
-  @Rule
-  @JvmField
-  var tempFolder = TemporaryFolder()
+  @field:[Rule JvmField] val tempFolder = TemporaryFolder()
 
   @Before
   fun setUp() {
@@ -92,7 +90,7 @@ class AccessibilityLabelCheckTest {
     val manifestFile = tempFolder.newFile("testfiles/$tempFileRelativePath")
     manifestFile.writeText(testContent)
 
-    val exception = assertThrows(Exception::class) {
+    val exception = assertThrows<Exception>() {
       main(
         retrieveTestFilesDirectoryPath(),
         "${tempFolder.root}/$pathToProtoBinary",
@@ -134,7 +132,7 @@ class AccessibilityLabelCheckTest {
     val manifestFile = tempFolder.newFile("testfiles/$tempFileRelativePath")
     manifestFile.writeText(testContent)
 
-    val exception = assertThrows(Exception::class) {
+    val exception = assertThrows<Exception>() {
       main(
         retrieveTestFilesDirectoryPath(),
         "${tempFolder.root}/$pathToProtoBinary",
@@ -244,7 +242,7 @@ class AccessibilityLabelCheckTest {
     appManifestFile.writeText(testContent1)
     splashManifestFile.writeText(testContent2)
 
-    val exception = assertThrows(Exception::class) {
+    val exception = assertThrows<Exception>() {
       main(
         retrieveTestFilesDirectoryPath(),
         "${tempFolder.root}/$pathToProtoBinary",
@@ -308,7 +306,7 @@ class AccessibilityLabelCheckTest {
     appManifestFile.writeText(testContent1)
     splashManifestFile.writeText(testContent2)
 
-    val exception = assertThrows(Exception::class) {
+    val exception = assertThrows<Exception>() {
       main(
         retrieveTestFilesDirectoryPath(),
         "${tempFolder.root}/$pathToProtoBinary",
@@ -393,7 +391,7 @@ class AccessibilityLabelCheckTest {
     }.build()
     exemptions.writeTo(exemptionFile.outputStream())
 
-    val exception = assertThrows(Exception::class) {
+    val exception = assertThrows<Exception>() {
       main(
         retrieveTestFilesDirectoryPath(),
         "${tempFolder.root}/$pathToProtoBinary",
@@ -436,7 +434,7 @@ class AccessibilityLabelCheckTest {
     }.build()
     exemptions.writeTo(exemptionFile.outputStream())
 
-    val exception = assertThrows(Exception::class) {
+    val exception = assertThrows<Exception>() {
       main(
         retrieveTestFilesDirectoryPath(),
         "${tempFolder.root}/$pathToProtoBinary",

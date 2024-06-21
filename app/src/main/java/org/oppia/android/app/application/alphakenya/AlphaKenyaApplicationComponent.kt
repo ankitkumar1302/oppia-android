@@ -13,6 +13,7 @@ import org.oppia.android.app.shim.ViewBindingShimModule
 import org.oppia.android.app.translation.ActivityRecreatorProdModule
 import org.oppia.android.data.backends.gae.NetworkConfigProdModule
 import org.oppia.android.data.backends.gae.NetworkModule
+import org.oppia.android.domain.auth.AuthenticationModule
 import org.oppia.android.domain.classify.InteractionsModule
 import org.oppia.android.domain.classify.rules.algebraicexpressioninput.AlgebraicExpressionInputModule
 import org.oppia.android.domain.classify.rules.continueinteraction.ContinueModule
@@ -43,7 +44,6 @@ import org.oppia.android.domain.platformparameter.PlatformParameterAlphaKenyaMod
 import org.oppia.android.domain.platformparameter.PlatformParameterSingletonModule
 import org.oppia.android.domain.platformparameter.syncup.PlatformParameterSyncUpWorkerModule
 import org.oppia.android.domain.question.QuestionModule
-import org.oppia.android.domain.topic.PrimeTopicAssetsControllerModule
 import org.oppia.android.domain.workmanager.WorkManagerConfigurationModule
 import org.oppia.android.util.accessibility.AccessibilityProdModule
 import org.oppia.android.util.caching.AssetModule
@@ -82,7 +82,7 @@ import javax.inject.Singleton
     ImageParsingModule::class, HtmlParserEntityTypeModule::class, CachingModule::class,
     QuestionModule::class, AccessibilityProdModule::class, ImageClickInputModule::class,
     LogStorageModule::class, IntentFactoryShimModule::class, ViewBindingShimModule::class,
-    PrimeTopicAssetsControllerModule::class, ExpirationMetaDataRetrieverModule::class,
+    ExpirationMetaDataRetrieverModule::class,
     RatioInputModule::class, UncaughtExceptionLoggerModule::class,
     ApplicationStartupListenerModule::class, LogReportWorkerModule::class,
     WorkManagerConfigurationModule::class, HintsAndSolutionConfigAlphaKenyaModule::class,
@@ -100,6 +100,7 @@ import javax.inject.Singleton
     PerformanceMetricsConfigurationsModule::class, AlphaBuildFlavorModule::class,
     KenyaAlphaEventLoggingConfigurationModule::class, CpuPerformanceSnapshotterModule::class,
     PerformanceMetricsAssessorModule::class, ExplorationProgressModule::class,
+    AuthenticationModule::class,
   ]
 )
 interface AlphaKenyaApplicationComponent : ApplicationComponent {

@@ -4,28 +4,33 @@ import android.content.Context
 import androidx.annotation.VisibleForTesting
 import dagger.Module
 import dagger.Provides
-import org.oppia.android.app.utility.getVersionCode
+import org.oppia.android.app.model.PlatformParameter
+import org.oppia.android.util.extensions.getVersionCode
+import org.oppia.android.util.platformparameter.APP_AND_OS_DEPRECATION
 import org.oppia.android.util.platformparameter.CACHE_LATEX_RENDERING
 import org.oppia.android.util.platformparameter.CACHE_LATEX_RENDERING_DEFAULT_VALUE
 import org.oppia.android.util.platformparameter.CacheLatexRendering
+import org.oppia.android.util.platformparameter.DOWNLOADS_SUPPORT
 import org.oppia.android.util.platformparameter.ENABLE_APP_AND_OS_DEPRECATION_DEFAULT_VALUE
-import org.oppia.android.util.platformparameter.ENABLE_CONTINUE_BUTTON_ANIMATION_DEFAULT_VALUE
 import org.oppia.android.util.platformparameter.ENABLE_DOWNLOADS_SUPPORT_DEFAULT_VALUE
 import org.oppia.android.util.platformparameter.ENABLE_EDIT_ACCOUNTS_OPTIONS_UI_DEFAULT_VALUE
 import org.oppia.android.util.platformparameter.ENABLE_EXTRA_TOPIC_TABS_UI_DEFAULT_VALUE
 import org.oppia.android.util.platformparameter.ENABLE_INTERACTION_CONFIG_CHANGE_STATE_RETENTION_DEFAULT_VALUE
-import org.oppia.android.util.platformparameter.ENABLE_LANGUAGE_SELECTION_UI_DEFAULT_VALUE
+import org.oppia.android.util.platformparameter.ENABLE_MULTIPLE_CLASSROOMS_DEFAULT_VALUE
+import org.oppia.android.util.platformparameter.ENABLE_NPS_SURVEY_DEFAULT_VALUE
+import org.oppia.android.util.platformparameter.ENABLE_ONBOARDING_FLOW_V2_DEFAULT_VALUE
 import org.oppia.android.util.platformparameter.ENABLE_PERFORMANCE_METRICS_COLLECTION_DEFAULT_VALUE
 import org.oppia.android.util.platformparameter.EnableAppAndOsDeprecation
-import org.oppia.android.util.platformparameter.EnableContinueButtonAnimation
 import org.oppia.android.util.platformparameter.EnableDownloadsSupport
 import org.oppia.android.util.platformparameter.EnableEditAccountsOptionsUi
 import org.oppia.android.util.platformparameter.EnableExtraTopicTabsUi
 import org.oppia.android.util.platformparameter.EnableFastLanguageSwitchingInLesson
 import org.oppia.android.util.platformparameter.EnableInteractionConfigChangeStateRetention
-import org.oppia.android.util.platformparameter.EnableLanguageSelectionUi
 import org.oppia.android.util.platformparameter.EnableLearnerStudyAnalytics
 import org.oppia.android.util.platformparameter.EnableLoggingLearnerStudyIds
+import org.oppia.android.util.platformparameter.EnableMultipleClassrooms
+import org.oppia.android.util.platformparameter.EnableNpsSurvey
+import org.oppia.android.util.platformparameter.EnableOnboardingFlowV2
 import org.oppia.android.util.platformparameter.EnablePerformanceMetricsCollection
 import org.oppia.android.util.platformparameter.EnableSpotlightUi
 import org.oppia.android.util.platformparameter.FAST_LANGUAGE_SWITCHING_IN_LESSON_DEFAULT_VALUE
@@ -65,9 +70,36 @@ import javax.inject.Singleton
 @Module
 class TestPlatformParameterModule {
   @Provides
+  @EnableTestFeatureFlag
+  fun provideEnableTestFeatureFlag(
+    platformParameterSingleton: PlatformParameterSingleton
+  ): PlatformParameterValue<Boolean> {
+    return platformParameterSingleton.getBooleanPlatformParameter(TEST_FEATURE_FLAG)
+      ?: PlatformParameterValue.createDefaultParameter(TEST_FEATURE_FLAG_DEFAULT_VALUE)
+  }
+
+  @Provides
+  @EnableTestFeatureFlagWithEnabledDefault
+  fun provideEnableTestFeatureFlagWithEnabledDefault(
+    platformParameterSingleton: PlatformParameterSingleton
+  ): PlatformParameterValue<Boolean> {
+    return platformParameterSingleton.getBooleanPlatformParameter(
+      TEST_FEATURE_FLAG_WITH_ENABLED_DEFAULTS
+    )
+      ?: PlatformParameterValue.createDefaultParameter(
+        defaultValue = TEST_FEATURE_FLAG_WITH_ENABLED_DEFAULT_VALUE,
+        defaultSyncStatus = PlatformParameter.SyncStatus.SYNCED_FROM_SERVER
+      )
+  }
+
+  @Provides
   @EnableDownloadsSupport
-  fun provideEnableDownloadsSupport(): PlatformParameterValue<Boolean> =
-    PlatformParameterValue.createDefaultParameter(enableDownloadsSupport)
+  fun provideEnableDownloadsSupport(
+    platformParameterSingleton: PlatformParameterSingleton
+  ): PlatformParameterValue<Boolean> {
+    return platformParameterSingleton.getBooleanPlatformParameter(DOWNLOADS_SUPPORT)
+      ?: PlatformParameterValue.createDefaultParameter(enableDownloadsSupport)
+  }
 
   @TestStringParam
   @Provides
@@ -119,11 +151,6 @@ class TestPlatformParameterModule {
       SYNC_UP_WORKER_TIME_PERIOD_IN_HOURS_DEFAULT_VALUE
     )
   }
-
-  @Provides
-  @EnableLanguageSelectionUi
-  fun provideEnableLanguageSelectionUi(): PlatformParameterValue<Boolean> =
-    PlatformParameterValue.createDefaultParameter(enableLanguageSelectionUi)
 
   @Provides
   @EnableEditAccountsOptionsUi
@@ -207,14 +234,6 @@ class TestPlatformParameterModule {
     PlatformParameterValue.createDefaultParameter(enableInteractionConfigChangeStateRetention)
 
   @Provides
-  @EnableContinueButtonAnimation
-  fun provideEnableContinueButtonAnimation(): PlatformParameterValue<Boolean> {
-    return PlatformParameterValue.createDefaultParameter(
-      enableContinueButtonAnimation
-    )
-  }
-
-  @Provides
   @EnableSpotlightUi
   fun provideEnableSpotlightUi(): PlatformParameterValue<Boolean> {
     return PlatformParameterValue.createDefaultParameter(
@@ -224,8 +243,11 @@ class TestPlatformParameterModule {
 
   @Provides
   @EnableAppAndOsDeprecation
-  fun provideEnableAppAndOsDeprecation(): PlatformParameterValue<Boolean> {
-    return PlatformParameterValue.createDefaultParameter(enableAppAndOsDeprecation)
+  fun provideEnableAppAndOsDeprecation(
+    platformParameterSingleton: PlatformParameterSingleton
+  ): PlatformParameterValue<Boolean> {
+    return platformParameterSingleton.getBooleanPlatformParameter(APP_AND_OS_DEPRECATION)
+      ?: PlatformParameterValue.createDefaultParameter(ENABLE_APP_AND_OS_DEPRECATION_DEFAULT_VALUE)
   }
 
   @Provides
@@ -280,9 +302,26 @@ class TestPlatformParameterModule {
       return PlatformParameterValue.createDefaultParameter(minimumLearningTime)
     }
 
+  @Provides
+  @EnableNpsSurvey
+  fun provideEnableNpsSurvey(): PlatformParameterValue<Boolean> {
+    return PlatformParameterValue.createDefaultParameter(enableNpsSurvey)
+  }
+
+  @Provides
+  @EnableOnboardingFlowV2
+  fun provideEnableOnboardingFlowV2(): PlatformParameterValue<Boolean> {
+    return PlatformParameterValue.createDefaultParameter(enableOnboardingFlowV2)
+  }
+
+  @Provides
+  @EnableMultipleClassrooms
+  fun provideEnableMultipleClassrooms(): PlatformParameterValue<Boolean> {
+    return PlatformParameterValue.createDefaultParameter(enableMultipleClassrooms)
+  }
+
   companion object {
     private var enableDownloadsSupport = ENABLE_DOWNLOADS_SUPPORT_DEFAULT_VALUE
-    private var enableLanguageSelectionUi = ENABLE_LANGUAGE_SELECTION_UI_DEFAULT_VALUE
     private var enableEditAccountsOptionsUi = ENABLE_EDIT_ACCOUNTS_OPTIONS_UI_DEFAULT_VALUE
     private var enableLearnerStudyAnalytics = LEARNER_STUDY_ANALYTICS_DEFAULT_VALUE
     private var enableFastLanguageSwitchingInLesson =
@@ -298,18 +337,13 @@ class TestPlatformParameterModule {
     private var minimumLearningTime =
       NPS_SURVEY_MINIMUM_AGGREGATE_LEARNING_TIME_IN_A_TOPIC_IN_MINUTES_DEFAULT_VALUE
     private var gracePeriodInDays = NPS_SURVEY_GRACE_PERIOD_IN_DAYS_DEFAULT_VALUE
+    private var enableNpsSurvey = ENABLE_NPS_SURVEY_DEFAULT_VALUE
+    private var enableOnboardingFlowV2 = ENABLE_ONBOARDING_FLOW_V2_DEFAULT_VALUE
+    private var enableMultipleClassrooms = ENABLE_MULTIPLE_CLASSROOMS_DEFAULT_VALUE
 
-    /** Enables forcing [EnableLanguageSelectionUi] platform parameter flag from tests. */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun forceEnableDownloadsSupport(value: Boolean) {
       enableDownloadsSupport = value
-    }
-    private var enableContinueButtonAnimation = ENABLE_CONTINUE_BUTTON_ANIMATION_DEFAULT_VALUE
-
-    /** Enables forcing [EnableLanguageSelectionUi] platform parameter flag from tests. */
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    fun forceEnableLanguageSelectionUi(value: Boolean) {
-      enableLanguageSelectionUi = value
     }
 
     /** Enables forcing [EnableEditAccountsOptionsUI] platform parameter flag from tests. */
@@ -354,22 +388,39 @@ class TestPlatformParameterModule {
       enablePerformanceMetricsCollection = value
     }
 
-    /** Enables forcing [EnableContinueButtonAnimation] platform parameter flag from tests. */
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    fun forceEnableContinueButtonAnimation(value: Boolean) {
-      enableContinueButtonAnimation = value
-    }
-
     /** Enables forcing [EnableSpotlightUi] platform parameter flag from tests. */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun forceEnableSpotlightUi(value: Boolean) {
       enableSpotlightUi = value
     }
 
+    /** Enables forcing [EnableNpsSurvey] feature flag from tests. */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    fun forceEnableNpsSurvey(value: Boolean) {
+      enableNpsSurvey = value
+    }
+
+    /** Enables forcing [EnableOnboardingFlowV2] platform parameter flag from tests. */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    fun forceEnableOnboardingFlowV2(value: Boolean) {
+      enableOnboardingFlowV2 = value
+    }
+
+    /** Enables forcing [EnableMultipleClassrooms] platform parameter flag from tests. */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    fun forceEnableMultipleClassrooms(value: Boolean) {
+      enableMultipleClassrooms = value
+    }
+
+    /** Enables forcing [EnableAppAndOsDeprecation] feature flag from tests. */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    fun forceEnableAppAndOsDeprecation(value: Boolean) {
+      enableAppAndOsDeprecation = value
+    }
+
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun reset() {
       enableDownloadsSupport = ENABLE_DOWNLOADS_SUPPORT_DEFAULT_VALUE
-      enableLanguageSelectionUi = ENABLE_LANGUAGE_SELECTION_UI_DEFAULT_VALUE
       enableEditAccountsOptionsUi = ENABLE_EDIT_ACCOUNTS_OPTIONS_UI_DEFAULT_VALUE
       enableLearnerStudyAnalytics = LEARNER_STUDY_ANALYTICS_DEFAULT_VALUE
       enableFastLanguageSwitchingInLesson = FAST_LANGUAGE_SWITCHING_IN_LESSON_DEFAULT_VALUE
@@ -379,6 +430,8 @@ class TestPlatformParameterModule {
         ENABLE_INTERACTION_CONFIG_CHANGE_STATE_RETENTION_DEFAULT_VALUE
       enablePerformanceMetricsCollection = ENABLE_PERFORMANCE_METRICS_COLLECTION_DEFAULT_VALUE
       enableAppAndOsDeprecation = ENABLE_APP_AND_OS_DEPRECATION_DEFAULT_VALUE
+      enableOnboardingFlowV2 = ENABLE_ONBOARDING_FLOW_V2_DEFAULT_VALUE
+      enableMultipleClassrooms = ENABLE_MULTIPLE_CLASSROOMS_DEFAULT_VALUE
     }
   }
 }

@@ -75,7 +75,6 @@ import org.oppia.android.domain.platformparameter.PlatformParameterModule
 import org.oppia.android.domain.platformparameter.PlatformParameterSingletonModule
 import org.oppia.android.domain.question.QuestionModule
 import org.oppia.android.domain.topic.FRACTIONS_TOPIC_ID
-import org.oppia.android.domain.topic.PrimeTopicAssetsControllerModule
 import org.oppia.android.domain.translation.TranslationController
 import org.oppia.android.domain.workmanager.WorkManagerConfigurationModule
 import org.oppia.android.testing.BuildEnvironment
@@ -85,6 +84,7 @@ import org.oppia.android.testing.RunOn
 import org.oppia.android.testing.TestLogReportingModule
 import org.oppia.android.testing.TestPlatform
 import org.oppia.android.testing.data.DataProviderTestMonitor
+import org.oppia.android.testing.firebase.TestAuthenticationModule
 import org.oppia.android.testing.junit.InitializeDefaultLocaleRule
 import org.oppia.android.testing.logging.EventLogSubject.Companion.assertThat
 import org.oppia.android.testing.robolectric.RobolectricModule
@@ -286,7 +286,7 @@ class RevisionCardActivityTest {
       profileId = profileId,
       topicId = "test_topic_id_0",
       subtopicId = 1
-    ).use { scenario ->
+    ).use {
       onView(withId(R.id.revision_card_explanation_text))
         .check(matches(withText(containsString("sample subtopic with dummy content"))))
     }
@@ -301,7 +301,7 @@ class RevisionCardActivityTest {
       profileId = profileId,
       topicId = "test_topic_id_0",
       subtopicId = 1
-    ).use { scenario ->
+    ).use {
       onView(withId(R.id.revision_card_explanation_text))
         .check(matches(withText(containsString("محاكاة محتوى أكثر واقعية"))))
     }
@@ -466,7 +466,7 @@ class RevisionCardActivityTest {
       GcsResourceModule::class, GlideImageLoaderModule::class, ImageParsingModule::class,
       HtmlParserEntityTypeModule::class, QuestionModule::class, TestLogReportingModule::class,
       AccessibilityTestModule::class, LogStorageModule::class, CachingTestModule::class,
-      PrimeTopicAssetsControllerModule::class, ExpirationMetaDataRetrieverModule::class,
+      ExpirationMetaDataRetrieverModule::class,
       ViewBindingShimModule::class, RatioInputModule::class, WorkManagerConfigurationModule::class,
       ApplicationStartupListenerModule::class, LogReportWorkerModule::class,
       HintsAndSolutionConfigModule::class, HintsAndSolutionProdModule::class,
@@ -481,12 +481,15 @@ class RevisionCardActivityTest {
       LoggingIdentifierModule::class, ApplicationLifecycleModule::class,
       SyncStatusModule::class, MetricLogSchedulerModule::class, TestingBuildFlavorModule::class,
       EventLoggingConfigurationModule::class, ActivityRouterModule::class,
-      CpuPerformanceSnapshotterModule::class, ExplorationProgressModule::class
+      CpuPerformanceSnapshotterModule::class, ExplorationProgressModule::class,
+      TestAuthenticationModule::class
     ]
   )
   interface TestApplicationComponent : ApplicationComponent {
     @Component.Builder
-    interface Builder : ApplicationComponent.Builder
+    interface Builder : ApplicationComponent.Builder {
+      override fun build(): TestApplicationComponent
+    }
 
     fun inject(revisionCardActivityTest: RevisionCardActivityTest)
   }

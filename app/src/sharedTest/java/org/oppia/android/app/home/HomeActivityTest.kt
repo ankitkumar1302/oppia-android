@@ -115,7 +115,6 @@ import org.oppia.android.domain.question.QuestionModule
 import org.oppia.android.domain.spotlight.SpotlightStateController
 import org.oppia.android.domain.topic.FRACTIONS_STORY_ID_0
 import org.oppia.android.domain.topic.FRACTIONS_TOPIC_ID
-import org.oppia.android.domain.topic.PrimeTopicAssetsControllerModule
 import org.oppia.android.domain.topic.TEST_TOPIC_ID_0
 import org.oppia.android.domain.workmanager.WorkManagerConfigurationModule
 import org.oppia.android.testing.BuildEnvironment
@@ -124,6 +123,7 @@ import org.oppia.android.testing.RunOn
 import org.oppia.android.testing.TestLogReportingModule
 import org.oppia.android.testing.TestPlatform
 import org.oppia.android.testing.data.DataProviderTestMonitor
+import org.oppia.android.testing.firebase.TestAuthenticationModule
 import org.oppia.android.testing.junit.DefineAppLanguageLocaleContext
 import org.oppia.android.testing.junit.InitializeDefaultLocaleRule
 import org.oppia.android.testing.platformparameter.TestPlatformParameterModule
@@ -244,6 +244,33 @@ class HomeActivityTest {
     val screenName = createHomeActivityIntent(internalProfileId).extractCurrentAppScreenName()
 
     assertThat(screenName).isEqualTo(ScreenName.HOME_ACTIVITY)
+  }
+
+  @Test
+  fun testHomeActivity_loadingItemsPending_progressbarIsDisplayed() {
+    fakeOppiaClock.setFakeTimeMode(FakeOppiaClock.FakeTimeMode.MODE_FIXED_FAKE_TIME)
+    launch<HomeActivity>(createHomeActivityIntent(internalProfileId)).use {
+      onView(withId(R.id.home_fragment_progress_bar)).check(
+        matches(
+          isDisplayed()
+        )
+      )
+    }
+  }
+
+  @Test
+  fun testHomeActivity_loadingItemsSuccess_checkProgressbarIsNotDisplayed() {
+    fakeOppiaClock.setFakeTimeMode(FakeOppiaClock.FakeTimeMode.MODE_FIXED_FAKE_TIME)
+    launch<HomeActivity>(createHomeActivityIntent(internalProfileId)).use {
+      testCoroutineDispatchers.runCurrent()
+      onView(withId(R.id.home_fragment_progress_bar)).check(
+        matches(
+          not(
+            isDisplayed()
+          )
+        )
+      )
+    }
   }
 
   @Test
@@ -1305,8 +1332,9 @@ class HomeActivityTest {
     }
   }
 
+  @Config(qualifiers = "+port")
   @Test
-  fun testHomeActivity_allTopicsCompleted_displaysAllTopicCards() {
+  fun testHomeActivity_allTopicsCompleted_mobilePortrait_displaysAllTopicCardsIn2Columns() {
     fakeOppiaClock.setFakeTimeMode(FakeOppiaClock.FakeTimeMode.MODE_UPTIME_MILLIS)
     storyProgressTestHelper.markAllTopicsAsCompleted(
       profileId = profileId,
@@ -1316,11 +1344,55 @@ class HomeActivityTest {
     launch<HomeActivity>(createHomeActivityIntent(internalProfileId)).use {
       testCoroutineDispatchers.runCurrent()
       scrollToPosition(position = 3)
-      if (context.resources.getBoolean(R.bool.isTablet)) {
-        verifyHomeRecyclerViewHasGridColumnCount(columnCount = 3)
-      } else {
-        verifyHomeRecyclerViewHasGridColumnCount(columnCount = 2)
-      }
+      verifyHomeRecyclerViewHasGridColumnCount(columnCount = 2)
+    }
+  }
+
+  @Config(qualifiers = "+land")
+  @Test
+  fun testHomeActivity_allTopicsCompleted_mobileLandscape_displaysAllTopicCardsIn3Columns() {
+    fakeOppiaClock.setFakeTimeMode(FakeOppiaClock.FakeTimeMode.MODE_UPTIME_MILLIS)
+    storyProgressTestHelper.markAllTopicsAsCompleted(
+      profileId = profileId,
+      timestampOlderThanOneWeek = false
+    )
+    logIntoAdminTwice()
+    launch<HomeActivity>(createHomeActivityIntent(internalProfileId)).use {
+      testCoroutineDispatchers.runCurrent()
+      scrollToPosition(position = 3)
+      verifyHomeRecyclerViewHasGridColumnCount(columnCount = 3)
+    }
+  }
+
+  @Config(qualifiers = "+sw600dp-port")
+  @Test
+  fun testHomeActivity_allTopicsCompleted_tabletPortrait_displaysAllTopicCardsIn3Columns() {
+    fakeOppiaClock.setFakeTimeMode(FakeOppiaClock.FakeTimeMode.MODE_UPTIME_MILLIS)
+    storyProgressTestHelper.markAllTopicsAsCompleted(
+      profileId = profileId,
+      timestampOlderThanOneWeek = false
+    )
+    logIntoAdminTwice()
+    launch<HomeActivity>(createHomeActivityIntent(internalProfileId)).use {
+      testCoroutineDispatchers.runCurrent()
+      scrollToPosition(position = 3)
+      verifyHomeRecyclerViewHasGridColumnCount(columnCount = 3)
+    }
+  }
+
+  @Config(qualifiers = "+sw600dp-land")
+  @Test
+  fun testHomeActivity_allTopicsCompleted_tabletLandscape_displaysAllTopicCardsIn4Columns() {
+    fakeOppiaClock.setFakeTimeMode(FakeOppiaClock.FakeTimeMode.MODE_UPTIME_MILLIS)
+    storyProgressTestHelper.markAllTopicsAsCompleted(
+      profileId = profileId,
+      timestampOlderThanOneWeek = false
+    )
+    logIntoAdminTwice()
+    launch<HomeActivity>(createHomeActivityIntent(internalProfileId)).use {
+      testCoroutineDispatchers.runCurrent()
+      scrollToPosition(position = 3)
+      verifyHomeRecyclerViewHasGridColumnCount(columnCount = 4)
     }
   }
 
@@ -1959,7 +2031,7 @@ class HomeActivityTest {
       GcsResourceModule::class, GlideImageLoaderModule::class, ImageParsingModule::class,
       HtmlParserEntityTypeModule::class, QuestionModule::class, TestLogReportingModule::class,
       AccessibilityTestModule::class, LogStorageModule::class, CachingTestModule::class,
-      PrimeTopicAssetsControllerModule::class, ExpirationMetaDataRetrieverModule::class,
+      ExpirationMetaDataRetrieverModule::class,
       ViewBindingShimModule::class, RatioInputModule::class, WorkManagerConfigurationModule::class,
       ApplicationStartupListenerModule::class, LogReportWorkerModule::class,
       HintsAndSolutionConfigModule::class, HintsAndSolutionProdModule::class,
@@ -1973,12 +2045,15 @@ class HomeActivityTest {
       LoggingIdentifierModule::class, ApplicationLifecycleModule::class,
       SyncStatusModule::class, MetricLogSchedulerModule::class, TestingBuildFlavorModule::class,
       EventLoggingConfigurationModule::class, ActivityRouterModule::class,
-      CpuPerformanceSnapshotterModule::class, ExplorationProgressModule::class
+      CpuPerformanceSnapshotterModule::class, ExplorationProgressModule::class,
+      TestAuthenticationModule::class
     ]
   )
   interface TestApplicationComponent : ApplicationComponent {
     @Component.Builder
-    interface Builder : ApplicationComponent.Builder
+    interface Builder : ApplicationComponent.Builder {
+      override fun build(): TestApplicationComponent
+    }
 
     fun inject(homeActivityTest: HomeActivityTest)
   }

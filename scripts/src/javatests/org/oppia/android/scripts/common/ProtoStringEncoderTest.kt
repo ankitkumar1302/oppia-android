@@ -16,9 +16,7 @@ import java.util.zip.ZipException
 // Function name: test names are conventionally named with underscores.
 @Suppress("FunctionName")
 class ProtoStringEncoderTest {
-  @Rule
-  @JvmField
-  var tempFolder = TemporaryFolder()
+  @field:[Rule JvmField] val tempFolder = TemporaryFolder()
 
   @Test
   fun testEncode_defaultProto_producesString() {
@@ -34,14 +32,14 @@ class ProtoStringEncoderTest {
 
   @Test
   fun testDecode_emptyString_throwsException() {
-    assertThrows(EOFException::class) {
+    assertThrows<EOFException>() {
       TestMessage.getDefaultInstance().mergeFromCompressedBase64(base64 = "")
     }
   }
 
   @Test
   fun testDecode_badString_throwsException() {
-    assertThrows(ZipException::class) {
+    assertThrows<ZipException>() {
       TestMessage.getDefaultInstance().mergeFromCompressedBase64(base64 = "asdf")
     }
   }

@@ -1,5 +1,6 @@
 # TODO(#1532): Rename file to 'BUILD' post-Gradle.
 
+load("@dagger//:workspace_defs.bzl", "dagger_rules")
 load("//:build_flavors.bzl", "AVAILABLE_FLAVORS", "define_oppia_aab_binary_flavor", "transform_android_manifest")
 load("//:version.bzl", "MAJOR_VERSION", "MINOR_VERSION", "OPPIA_DEV_KITKAT_VERSION_CODE", "OPPIA_DEV_VERSION_CODE")
 
@@ -118,14 +119,14 @@ package_group(
             "flavor": "oppia",
             "min_sdk_version": 21,
             "multidex": "native",
-            "target_sdk_version": 31,
+            "target_sdk_version": 33,
         },
         {
             "flavor": "oppia_kitkat",
             "main_dex_list": "//:config/kitkat_main_dex_class_list.txt",
             "min_sdk_version": 19,
             "multidex": "manual_main_dex",
-            "target_sdk_version": 31,
+            "target_sdk_version": 33,
         },
     ]
 ]
@@ -137,3 +138,5 @@ package_group(
     define_oppia_aab_binary_flavor(flavor = flavor)
     for flavor in AVAILABLE_FLAVORS
 ]
+
+dagger_rules()

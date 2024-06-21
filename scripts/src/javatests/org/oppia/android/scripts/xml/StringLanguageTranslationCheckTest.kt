@@ -42,7 +42,7 @@ class StringLanguageTranslationCheckTest {
       mapOf("nigerian_pidgin_only_string" to "Abeg select all di correct choices.")
   }
 
-  @field:[Rule JvmField] var tempFolder = TemporaryFolder()
+  @field:[Rule JvmField] val tempFolder = TemporaryFolder()
 
   private val originalOut: PrintStream = System.out
   private val documentBuilderFactory by lazy { DocumentBuilderFactory.newInstance() }
@@ -65,7 +65,7 @@ class StringLanguageTranslationCheckTest {
 
   @Test
   fun testScript_missingPath_throwsException() {
-    val exception = assertThrows(IllegalArgumentException::class) { runScript(/* With no path. */) }
+    val exception = assertThrows<IllegalArgumentException>() { runScript(/* With no path. */) }
 
     assertThat(exception)
       .hasMessageThat()
@@ -74,7 +74,7 @@ class StringLanguageTranslationCheckTest {
 
   @Test
   fun testScript_validPath_noStringFiles_throwsException() {
-    val exception = assertThrows(IllegalStateException::class) {
+    val exception = assertThrows<IllegalStateException>() {
       runScript(tempFolder.root.absolutePath)
     }
 

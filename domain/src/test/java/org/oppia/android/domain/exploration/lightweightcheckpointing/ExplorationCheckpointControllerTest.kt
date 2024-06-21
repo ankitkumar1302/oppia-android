@@ -52,6 +52,7 @@ import org.oppia.android.domain.topic.FRACTIONS_EXPLORATION_ID_1
 import org.oppia.android.testing.TestLogReportingModule
 import org.oppia.android.testing.data.DataProviderTestMonitor
 import org.oppia.android.testing.environment.TestEnvironmentConfig
+import org.oppia.android.testing.firebase.TestAuthenticationModule
 import org.oppia.android.testing.lightweightcheckpointing.ExplorationCheckpointTestHelper
 import org.oppia.android.testing.lightweightcheckpointing.FRACTIONS_EXPLORATION_0_TITLE
 import org.oppia.android.testing.lightweightcheckpointing.FRACTIONS_STORY_0_EXPLORATION_0_CURRENT_VERSION
@@ -63,9 +64,7 @@ import org.oppia.android.testing.threading.TestDispatcherModule
 import org.oppia.android.testing.time.FakeOppiaClock
 import org.oppia.android.testing.time.FakeOppiaClockModule
 import org.oppia.android.util.caching.AssetModule
-import org.oppia.android.util.caching.CacheAssetsLocally
 import org.oppia.android.util.caching.LoadLessonProtosFromAssets
-import org.oppia.android.util.caching.TopicListToCache
 import org.oppia.android.util.data.DataProvider
 import org.oppia.android.util.data.DataProvidersInjector
 import org.oppia.android.util.data.DataProvidersInjectorProvider
@@ -969,14 +968,6 @@ class ExplorationCheckpointControllerTest {
     @Provides
     fun provideGlobalLogLevel(): LogLevel = LogLevel.VERBOSE
 
-    @CacheAssetsLocally
-    @Provides
-    fun provideCacheAssetsLocally(): Boolean = false
-
-    @Provides
-    @TopicListToCache
-    fun provideTopicListToCache(): List<String> = listOf()
-
     @Provides
     @LoadLessonProtosFromAssets
     fun provideLoadLessonProtosFromAssets(testEnvironmentConfig: TestEnvironmentConfig): Boolean =
@@ -1000,7 +991,7 @@ class ExplorationCheckpointControllerTest {
       AlgebraicExpressionInputModule::class, MathEquationInputModule::class,
       RatioInputModule::class, ImageClickInputModule::class, InteractionsModule::class,
       HintsAndSolutionConfigModule::class, HintsAndSolutionProdModule::class,
-      ExplorationProgressModule::class,
+      ExplorationProgressModule::class, TestAuthenticationModule::class
     ]
   )
   interface TestApplicationComponent : DataProvidersInjector {
