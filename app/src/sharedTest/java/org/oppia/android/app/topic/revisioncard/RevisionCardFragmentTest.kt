@@ -19,7 +19,6 @@ import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
-import androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
@@ -53,8 +52,12 @@ import org.oppia.android.app.application.testing.TestingBuildFlavorModule
 import org.oppia.android.app.devoptions.DeveloperOptionsModule
 import org.oppia.android.app.devoptions.DeveloperOptionsStarterModule
 import org.oppia.android.app.help.HelpActivity
+import org.oppia.android.app.model.HelpActivityParams
 import org.oppia.android.app.model.OppiaLanguage
+import org.oppia.android.app.model.OptionsActivityParams
 import org.oppia.android.app.model.ProfileId
+import org.oppia.android.app.model.ReadingTextSize
+import org.oppia.android.app.model.RevisionCardActivityParams
 import org.oppia.android.app.model.WrittenTranslationLanguageSelection
 import org.oppia.android.app.options.OptionsActivity
 import org.oppia.android.app.player.exploration.ExplorationActivity
@@ -62,6 +65,8 @@ import org.oppia.android.app.player.state.itemviewmodel.SplitScreenInteractionMo
 import org.oppia.android.app.shim.ViewBindingShimModule
 import org.oppia.android.app.topic.revisioncard.RevisionCardActivity.Companion.createRevisionCardActivityIntent
 import org.oppia.android.app.translation.testing.ActivityRecreatorTestModule
+import org.oppia.android.app.utility.EspressoTestsMatchers.hasProtoExtra
+import org.oppia.android.app.utility.FontSizeMatcher.Companion.withFontSize
 import org.oppia.android.app.utility.OrientationChangeAction.Companion.orientationLandscape
 import org.oppia.android.data.backends.gae.NetworkConfigProdModule
 import org.oppia.android.data.backends.gae.NetworkModule
@@ -227,6 +232,96 @@ class RevisionCardFragmentTest {
   }
 
   @Test
+  @RunOn(TestPlatform.ROBOLECTRIC)
+  fun testRevisionCard_extraLargeTextSize_hasCorrectDimension() {
+    launch<RevisionCardActivity>(
+      createRevisionCardActivityIntent(
+        context,
+        profileId.internalId,
+        FRACTIONS_TOPIC_ID,
+        subtopicId = 2,
+        FRACTIONS_SUBTOPIC_LIST_SIZE
+      )
+    ).use {
+      it.onActivity { activity ->
+        activity.revisionCardActivityPresenter
+          .loadRevisionCardFragment(ReadingTextSize.EXTRA_LARGE_TEXT_SIZE)
+      }
+      onView(withId(R.id.revision_card_explanation_text)).check(
+        matches(withFontSize(67F))
+      )
+    }
+  }
+
+  @Test
+  @RunOn(TestPlatform.ROBOLECTRIC)
+  fun testRevisionCard_largeTextSize_hasCorrectDimension() {
+    launch<RevisionCardActivity>(
+      createRevisionCardActivityIntent(
+        context,
+        profileId.internalId,
+        FRACTIONS_TOPIC_ID,
+        subtopicId = 2,
+        FRACTIONS_SUBTOPIC_LIST_SIZE
+      )
+    ).use {
+      it.onActivity { activity ->
+        activity.revisionCardActivityPresenter
+          .loadRevisionCardFragment(ReadingTextSize.LARGE_TEXT_SIZE)
+      }
+      onView(withId(R.id.revision_card_explanation_text)).check(
+        matches(withFontSize(58F))
+      )
+    }
+  }
+
+  @Test
+  @RunOn(TestPlatform.ROBOLECTRIC)
+  fun testRevisionCard_mediumTextSize_hasCorrectDimension() {
+    launch<RevisionCardActivity>(
+      createRevisionCardActivityIntent(
+        context,
+        profileId.internalId,
+        FRACTIONS_TOPIC_ID,
+        subtopicId = 2,
+        FRACTIONS_SUBTOPIC_LIST_SIZE
+      )
+    ).use {
+      it.onActivity { activity ->
+        activity.revisionCardActivityPresenter
+          .loadRevisionCardFragment(
+            ReadingTextSize.MEDIUM_TEXT_SIZE
+          )
+      }
+      onView(withId(R.id.revision_card_explanation_text)).check(
+        matches(withFontSize(48F))
+      )
+    }
+  }
+
+  @Test
+  @RunOn(TestPlatform.ROBOLECTRIC)
+  fun testRevisionCard_smallTextSize_hasCorrectDimension() {
+    launch<RevisionCardActivity>(
+      createRevisionCardActivityIntent(
+        context,
+        profileId.internalId,
+        FRACTIONS_TOPIC_ID,
+        subtopicId = 2,
+        FRACTIONS_SUBTOPIC_LIST_SIZE
+      )
+    ).use {
+      it.onActivity { activity ->
+        activity.revisionCardActivityPresenter
+          .loadRevisionCardFragment(ReadingTextSize.SMALL_TEXT_SIZE)
+      }
+      onView(withId(R.id.revision_card_explanation_text)).check(
+        matches(withFontSize(38F))
+      )
+    }
+  }
+
+  @Test
   fun testRevisionCardTest_initialise_openBottomSheet_showsBottomSheet() {
     launch<ExplorationActivity>(
       createRevisionCardActivityIntent(
@@ -297,11 +392,14 @@ class RevisionCardFragmentTest {
       testCoroutineDispatchers.runCurrent()
       onView(withText(context.getString(R.string.menu_help))).inRoot(isDialog()).perform(click())
       testCoroutineDispatchers.runCurrent()
+      val args = HelpActivityParams.newBuilder().apply {
+        this.isFromNavigationDrawer = false
+      }.build()
       intended(hasComponent(HelpActivity::class.java.name))
       intended(
-        hasExtra(
-          HelpActivity.BOOL_IS_FROM_NAVIGATION_DRAWER_EXTRA_KEY,
-          /* value= */ false
+        hasProtoExtra(
+          HelpActivity.HELP_ACTIVITY_PARAMS_KEY,
+          /* value= */ args
         )
       )
     }
@@ -324,12 +422,14 @@ class RevisionCardFragmentTest {
 
       onView(withText(context.getString(R.string.menu_options))).inRoot(isDialog()).perform(click())
       testCoroutineDispatchers.runCurrent()
-
+      val args =
+        OptionsActivityParams.newBuilder().setIsFromNavigationDrawer(false)
+          .build()
       intended(hasComponent(OptionsActivity::class.java.name))
       intended(
-        hasExtra(
-          OptionsActivity.BOOL_IS_FROM_NAVIGATION_DRAWER_EXTRA_KEY,
-          /* value= */ false
+        hasProtoExtra(
+          OptionsActivity.OPTIONS_ACTIVITY_PARAMS_KEY,
+          /* value= */ args
         )
       )
     }
@@ -471,8 +571,13 @@ class RevisionCardFragmentTest {
       testCoroutineDispatchers.runCurrent()
       onView(withId(R.id.previous_navigation_card)).perform(click())
       testCoroutineDispatchers.runCurrent()
+      val args = RevisionCardActivityParams.newBuilder().apply {
+        this.subtopicId = FRACTIONS_SUBTOPIC_TOPIC_ID_0
+        this.topicId = FRACTIONS_TOPIC_ID
+        this.subtopicListSize = FRACTIONS_SUBTOPIC_LIST_SIZE
+      }.build()
       intended(hasComponent(RevisionCardActivity::class.java.name))
-      intended(hasExtra(SUBTOPIC_ID_EXTRA_KEY, FRACTIONS_SUBTOPIC_TOPIC_ID_0))
+      intended(hasProtoExtra(RevisionCardActivity.REVISION_CARD_ACTIVITY_PARAMS_KEY, args))
     }
   }
 
@@ -493,8 +598,14 @@ class RevisionCardFragmentTest {
       onView(withId(R.id.revision_card_fragment_navigation_card_container)).perform(scrollTo())
       onView(withId(R.id.next_navigation_card)).perform(click())
       testCoroutineDispatchers.runCurrent()
+
+      val args = RevisionCardActivityParams.newBuilder().apply {
+        this.subtopicId = FRACTIONS_SUBTOPIC_TOPIC_ID_2
+        this.topicId = FRACTIONS_TOPIC_ID
+        this.subtopicListSize = FRACTIONS_SUBTOPIC_LIST_SIZE
+      }.build()
       intended(hasComponent(RevisionCardActivity::class.java.name))
-      intended(hasExtra(SUBTOPIC_ID_EXTRA_KEY, FRACTIONS_SUBTOPIC_TOPIC_ID_2))
+      intended(hasProtoExtra(RevisionCardActivity.REVISION_CARD_ACTIVITY_PARAMS_KEY, args))
     }
   }
 

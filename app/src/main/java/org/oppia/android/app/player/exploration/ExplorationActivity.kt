@@ -9,6 +9,8 @@ import org.oppia.android.app.hintsandsolution.HintsAndSolutionDialogFragment
 import org.oppia.android.app.hintsandsolution.HintsAndSolutionListener
 import org.oppia.android.app.hintsandsolution.RevealHintListener
 import org.oppia.android.app.hintsandsolution.RevealSolutionInterface
+import org.oppia.android.app.hintsandsolution.ViewHintListener
+import org.oppia.android.app.hintsandsolution.ViewSolutionInterface
 import org.oppia.android.app.model.ExplorationActivityParams
 import org.oppia.android.app.model.HelpIndex
 import org.oppia.android.app.model.ProfileId
@@ -37,7 +39,9 @@ class ExplorationActivity :
   HintsAndSolutionListener,
   RouteToHintsAndSolutionListener,
   RevealHintListener,
+  ViewHintListener,
   RevealSolutionInterface,
+  ViewSolutionInterface,
   DefaultFontSizeStateListener,
   HintsAndSolutionExplorationManagerListener,
   ConceptCardListener,
@@ -56,6 +60,7 @@ class ExplorationActivity :
     explorationActivityPresenter.handleOnCreate(
       this,
       params.profileId,
+      params.classroomId,
       params.topicId,
       params.storyId,
       params.explorationId,
@@ -75,6 +80,7 @@ class ExplorationActivity :
     fun createExplorationActivityIntent(
       context: Context,
       profileId: ProfileId,
+      classroomId: String,
       topicId: String,
       storyId: String,
       explorationId: String,
@@ -83,6 +89,7 @@ class ExplorationActivity :
     ): Intent {
       val params = ExplorationActivityParams.newBuilder().apply {
         this.profileId = profileId
+        this.classroomId = classroomId
         this.topicId = topicId
         this.storyId = storyId
         this.explorationId = explorationId
@@ -183,9 +190,19 @@ class ExplorationActivity :
     this.writtenTranslationContext = writtenTranslationContext
   }
 
-  override fun dismissConceptCard() = explorationActivityPresenter.dismissConceptCard()
+  override fun dismissConceptCard() {
+    getHintsAndSolution()?.dismissConceptCard()
+  }
 
   override fun requestVoiceOverIconSpotlight(numberOfLogins: Int) {
     explorationActivityPresenter.requestVoiceOverIconSpotlight(numberOfLogins)
+  }
+
+  override fun viewHint(hintIndex: Int) {
+    explorationActivityPresenter.viewHint(hintIndex)
+  }
+
+  override fun viewSolution() {
+    explorationActivityPresenter.viewSolution()
   }
 }

@@ -8,7 +8,6 @@ import org.oppia.android.app.activity.ActivityComponentImpl
 import org.oppia.android.app.activity.InjectableAutoLocalizedAppCompatActivity
 import org.oppia.android.app.activity.route.ActivityRouter
 import org.oppia.android.app.drawer.ExitProfileDialogFragment
-import org.oppia.android.app.drawer.NAVIGATION_PROFILE_ID_ARGUMENT_KEY
 import org.oppia.android.app.drawer.TAG_SWITCH_PROFILE_DIALOG
 import org.oppia.android.app.model.DestinationScreen
 import org.oppia.android.app.model.ExitProfileDialogArguments
@@ -20,6 +19,8 @@ import org.oppia.android.app.model.ScreenName.HOME_ACTIVITY
 import org.oppia.android.app.topic.TopicActivity
 import org.oppia.android.app.translation.AppLanguageResourceHandler
 import org.oppia.android.util.logging.CurrentAppScreenNameIntentDecorator.decorateWithScreenName
+import org.oppia.android.util.profile.CurrentUserProfileIdIntentDecorator.decorateWithUserProfileId
+import org.oppia.android.util.profile.CurrentUserProfileIdIntentDecorator.extractCurrentUserProfileId
 import javax.inject.Inject
 
 /** The central activity for all users entering the app. */
@@ -40,10 +41,14 @@ class HomeActivity :
   private var internalProfileId: Int = -1
 
   companion object {
-    fun createHomeActivity(context: Context, profileId: Int?): Intent {
+
+    fun createHomeActivity(context: Context, profileId: ProfileId?): Intent {
+
       return Intent(context, HomeActivity::class.java).apply {
-        putExtra(NAVIGATION_PROFILE_ID_ARGUMENT_KEY, profileId)
         decorateWithScreenName(HOME_ACTIVITY)
+        if (profileId != null) {
+          decorateWithUserProfileId(profileId)
+        }
       }
     }
   }
@@ -51,7 +56,8 @@ class HomeActivity :
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     (activityComponent as ActivityComponentImpl).inject(this)
-    internalProfileId = intent?.getIntExtra(NAVIGATION_PROFILE_ID_ARGUMENT_KEY, -1)!!
+
+    internalProfileId = intent.extractCurrentUserProfileId().internalId
     homeActivityPresenter.handleOnCreate(internalProfileId)
     title = resourceHandler.getStringInLocale(R.string.home_activity_title)
   }
@@ -61,8 +67,10 @@ class HomeActivity :
     homeActivityPresenter.handleOnRestart()
   }
 
-  override fun routeToTopic(internalProfileId: Int, topicId: String) {
-    startActivity(TopicActivity.createTopicActivityIntent(this, internalProfileId, topicId))
+  override fun routeToTopic(internalProfileId: Int, classroomId: String, topicId: String) {
+    startActivity(
+      TopicActivity.createTopicActivityIntent(this, internalProfileId, classroomId, topicId)
+    )
   }
 
   override fun onBackPressed() {
@@ -81,11 +89,17 @@ class HomeActivity :
     dialogFragment.showNow(supportFragmentManager, TAG_SWITCH_PROFILE_DIALOG)
   }
 
-  override fun routeToTopicPlayStory(internalProfileId: Int, topicId: String, storyId: String) {
+  override fun routeToTopicPlayStory(
+    internalProfileId: Int,
+    classroomId: String,
+    topicId: String,
+    storyId: String
+  ) {
     startActivity(
       TopicActivity.createTopicPlayStoryActivityIntent(
         this,
         internalProfileId,
+        classroomId,
         topicId,
         storyId
       )

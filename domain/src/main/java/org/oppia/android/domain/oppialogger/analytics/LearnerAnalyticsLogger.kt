@@ -75,6 +75,7 @@ class LearnerAnalyticsLogger @Inject constructor(
     profileId: ProfileId,
     learnerId: String?,
     exploration: Exploration,
+    classroomId: String,
     topicId: String,
     storyId: String
   ): ExplorationAnalyticsLogger {
@@ -82,6 +83,7 @@ class LearnerAnalyticsLogger @Inject constructor(
       installationId,
       profileId,
       learnerId,
+      classroomId,
       topicId,
       storyId,
       exploration.id,
@@ -185,6 +187,7 @@ class LearnerAnalyticsLogger @Inject constructor(
     installationId: String?,
     profileId: ProfileId,
     learnerId: String?,
+    classroomId: String,
     topicId: String,
     storyId: String,
     explorationId: String,
@@ -213,6 +216,7 @@ class LearnerAnalyticsLogger @Inject constructor(
         ExplorationContext.newBuilder().apply {
           sessionId = learnerSessionId
           this.explorationId = explorationId
+          this.classroomId = classroomId
           this.topicId = topicId
           this.storyId = storyId
           this.explorationVersion = explorationVersion
@@ -233,6 +237,11 @@ class LearnerAnalyticsLogger @Inject constructor(
       baseLogger.maybeLogLearnerEvent(learnerDetailsContext) {
         createAnalyticsEvent(it, EventBuilder::setStartOverExplorationContext)
       }
+    }
+
+    /** Logs that an exploration has been started by the learner. */
+    fun logStartExploration() {
+      getExpectedStateLogger()?.logStartExploration()
     }
 
     /** Logs that the current exploration has been exited (i.e. not finished). */
@@ -321,6 +330,11 @@ class LearnerAnalyticsLogger @Inject constructor(
   ) {
     private val linkedSkillId by lazy { currentState.linkedSkillId }
 
+    /** Logs that an exploration has been started (at this state). */
+    internal fun logStartExploration() {
+      logStateEvent(EventBuilder::setStartExplorationContext)
+    }
+
     /** Logs that the current exploration has been exited (at this state). */
     internal fun logExitExploration() {
       logStateEvent(EventBuilder::setExitExplorationContext)
@@ -371,9 +385,17 @@ class LearnerAnalyticsLogger @Inject constructor(
       logStateEvent(hintIndex, ::createHintContext, EventBuilder::setHintUnlockedContext)
     }
 
-    /** Logs that the hint corresponding to [hintIndex] has been viewed by the learner. */
+    /** Logs that the hint corresponding to [hintIndex] has been revealed by the learner. */
+    fun logRevealHint(hintIndex: Int) {
+      logStateEvent(hintIndex, ::createHintContext, EventBuilder::setRevealHintContext)
+    }
+
+    /**
+     * Logs the event indicating that the learner has viewed a hint corresponding to [hintIndex],
+     * excluding the first-time viewing.
+     */
     fun logViewHint(hintIndex: Int) {
-      logStateEvent(hintIndex, ::createHintContext, EventBuilder::setAccessHintContext)
+      logStateEvent(hintIndex, ::createHintContext, EventBuilder::setViewExistingHintContext)
     }
 
     /** Logs that the solution to the current card has been unlocked by the learner. */
@@ -382,8 +404,16 @@ class LearnerAnalyticsLogger @Inject constructor(
     }
 
     /** Logs that the solution to the current card has been viewed by the learner. */
+    fun logRevealSolution() {
+      logStateEvent(EventBuilder::setRevealSolutionContext)
+    }
+
+    /**
+     * Logs the event indicating that the learner has viewed the solution to the current card,
+     * excluding the first-time viewing.
+     */
     fun logViewSolution() {
-      logStateEvent(EventBuilder::setAccessSolutionContext)
+      logStateEvent(EventBuilder::setViewExistingSolutionContext)
     }
 
     /**

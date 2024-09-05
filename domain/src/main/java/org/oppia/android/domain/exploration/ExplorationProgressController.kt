@@ -61,7 +61,11 @@ private const val SUBMIT_ANSWER_RESULT_PROVIDER_ID =
   "ExplorationProgressController.submit_answer_result"
 private const val SUBMIT_HINT_REVEALED_RESULT_PROVIDER_ID =
   "ExplorationProgressController.submit_hint_revealed_result"
+private const val SUBMIT_HINT_VIEWED_RESULT_PROVIDER_ID =
+  "ExplorationProgressController.submit_hint_revealed_result"
 private const val SUBMIT_SOLUTION_REVEALED_RESULT_PROVIDER_ID =
+  "ExplorationProgressController.submit_solution_revealed_result"
+private const val SUBMIT_SOLUTION_VIEWED_RESULT_PROVIDER_ID =
   "ExplorationProgressController.submit_solution_revealed_result"
 private const val MOVE_TO_PREVIOUS_STATE_RESULT_PROVIDER_ID =
   "ExplorationProgressController.move_to_previous_state_result"
@@ -148,6 +152,7 @@ class ExplorationProgressController @Inject constructor(
    */
   internal fun beginExplorationAsync(
     profileId: ProfileId,
+    classroomId: String,
     topicId: String,
     storyId: String,
     explorationId: String,
@@ -165,6 +170,7 @@ class ExplorationProgressController @Inject constructor(
     val message =
       ControllerMessage.InitializeController(
         profileId,
+        classroomId,
         topicId,
         storyId,
         explorationId,
@@ -276,6 +282,24 @@ class ExplorationProgressController @Inject constructor(
   }
 
   /**
+   * Notifies the controller that the user has viewed a hint.
+   *
+   * @param hintIndex index of the hint that is being viewed
+   *
+   * @return a [DataProvider] that indicates success/failure of the operation (the actual payload of
+   *     the result isn't relevant)
+   */
+
+  fun submitHintIsViewed(hintIndex: Int): DataProvider<Any?> {
+    val submitResultFlow = createAsyncResultStateFlow<Any?>()
+    val message = ControllerMessage.LogHintIsViewed(hintIndex, activeSessionId, submitResultFlow)
+    sendCommandForOperation(message) {
+      "Failed to schedule command for viewing hint: $hintIndex."
+    }
+    return submitResultFlow.convertToSessionProvider(SUBMIT_HINT_VIEWED_RESULT_PROVIDER_ID)
+  }
+
+  /**
    * Notifies the controller that the user has revealed the solution to the current state.
    *
    * The returned [DataProvider] has the same lifecycle considerations as the provider returned by
@@ -289,6 +313,18 @@ class ExplorationProgressController @Inject constructor(
     val message = ControllerMessage.SolutionIsRevealed(activeSessionId, submitResultFlow)
     sendCommandForOperation(message) { "Failed to schedule command for revealing the solution." }
     return submitResultFlow.convertToSessionProvider(SUBMIT_SOLUTION_REVEALED_RESULT_PROVIDER_ID)
+  }
+
+  /**
+   * Notifies the controller that the user has viewed the answer.
+   * @return a [DataProvider] that indicates success/failure of the operation (the actual payload of
+   *     the result isn't relevant)
+   */
+  fun submitSolutionIsViewed(): DataProvider<Any?> {
+    val submitResultFlow = createAsyncResultStateFlow<Any?>()
+    val message = ControllerMessage.LogSolutionIsViewed(activeSessionId, submitResultFlow)
+    sendCommandForOperation(message) { "Failed to schedule command for viewing the solution." }
+    return submitResultFlow.convertToSessionProvider(SUBMIT_SOLUTION_VIEWED_RESULT_PROVIDER_ID)
   }
 
   /**
@@ -419,7 +455,6 @@ class ExplorationProgressController @Inject constructor(
   @OptIn(ObsoleteCoroutinesApi::class)
   private fun createControllerCommandActor(): SendChannel<ControllerMessage<*>> {
     lateinit var controllerState: ControllerState
-
     // Use an unlimited capacity buffer so that commands can be sent asynchronously without blocking
     // the main thread or scheduling an extra coroutine.
     @Suppress("JoinDeclarationAndAssignment") // Warning is incorrect in this case.
@@ -468,6 +503,7 @@ class ExplorationProgressController @Inject constructor(
                   it.beginExplorationImpl(
                     message.callbackFlow,
                     message.profileId,
+                    message.classroomId,
                     message.topicId,
                     message.storyId,
                     message.explorationId,
@@ -491,8 +527,14 @@ class ExplorationProgressController @Inject constructor(
             is ControllerMessage.HintIsRevealed -> {
               controllerState.submitHintIsRevealedImpl(message.callbackFlow, message.hintIndex)
             }
+            is ControllerMessage.LogHintIsViewed ->
+              controllerState.logViewedHintImpl(
+                activeSessionId, message.hintIndex, message.callbackFlow
+              )
             is ControllerMessage.SolutionIsRevealed ->
               controllerState.submitSolutionIsRevealedImpl(message.callbackFlow)
+            is ControllerMessage.LogSolutionIsViewed ->
+              controllerState.logViewedSolutionImpl(activeSessionId, message.callbackFlow)
             is ControllerMessage.MoveToPreviousState ->
               controllerState.moveToPreviousStateImpl(message.callbackFlow)
             is ControllerMessage.MoveToNextState ->
@@ -549,6 +591,7 @@ class ExplorationProgressController @Inject constructor(
   private suspend fun ControllerState.beginExplorationImpl(
     beginExplorationResultFlow: MutableStateFlow<AsyncResult<Any?>>,
     profileId: ProfileId,
+    classroomId: String,
     topicId: String,
     storyId: String,
     explorationId: String,
@@ -562,6 +605,7 @@ class ExplorationProgressController @Inject constructor(
 
       explorationProgress.apply {
         currentProfileId = profileId
+        currentClassroomId = classroomId
         currentTopicId = topicId
         currentStoryId = storyId
         currentExplorationId = explorationId
@@ -790,6 +834,43 @@ class ExplorationProgressController @Inject constructor(
     }
   }
 
+  private suspend fun ControllerState.logViewedHintImpl(
+    sessionId: String,
+    hintIndex: Int,
+    submitLogHintViewedResultFlow: MutableStateFlow<AsyncResult<Any?>>
+  ) {
+    tryOperation(submitLogHintViewedResultFlow) {
+      check(explorationProgress.playStage != NOT_PLAYING) {
+        "Cannot log hint viewed if an exploration is not being played."
+      }
+      check(explorationProgress.playStage != LOADING_EXPLORATION) {
+        "Cannot log hint viewed if an exploration is being loaded."
+      }
+      check(explorationProgress.playStage != SUBMITTING_ANSWER) {
+        "Cannot log hint viewed if an answer submission is pending."
+      }
+      maybeLogViewedHint(sessionId, hintIndex)
+    }
+  }
+
+  private suspend fun ControllerState.logViewedSolutionImpl(
+    sessionId: String,
+    submitLogSolutionViewedResultFlow: MutableStateFlow<AsyncResult<Any?>>
+  ) {
+    tryOperation(submitLogSolutionViewedResultFlow) {
+      check(explorationProgress.playStage != NOT_PLAYING) {
+        "Cannot log solution viewed if an exploration is not being played."
+      }
+      check(explorationProgress.playStage != LOADING_EXPLORATION) {
+        "Cannot log solution viewed while the exploration is being loaded."
+      }
+      check(explorationProgress.playStage != SUBMITTING_ANSWER) {
+        "Cannot log solution viewed if an answer submission is pending."
+      }
+      maybeLogViewedSolution(sessionId)
+    }
+  }
+
   private fun ControllerState.maybeLogUpdatedHelpIndex(
     helpIndex: HelpIndex,
     activeSessionId: String
@@ -797,6 +878,25 @@ class ExplorationProgressController @Inject constructor(
     // Only log if the current session is active.
     if (sessionId == activeSessionId) {
       checkForChangedHintState(helpIndex)
+    }
+  }
+
+  private fun ControllerState.maybeLogViewedHint(
+    activeSessionId: String,
+    hintIndex: Int
+  ) {
+    // Only log if the current session is active.
+    if (sessionId == activeSessionId) {
+      stateAnalyticsLogger?.logViewHint(hintIndex)
+    }
+  }
+
+  private fun ControllerState.maybeLogViewedSolution(
+    activeSessionId: String
+  ) {
+    // Only log if the current session is active.
+    if (sessionId == activeSessionId) {
+      stateAnalyticsLogger?.logViewSolution()
     }
   }
 
@@ -900,6 +1000,10 @@ class ExplorationProgressController @Inject constructor(
       val state = progress.stateDeck.getCurrentState()
       hintHandler.startWatchingForHintsInNewState(state)
       startState(logStartCard = true)
+
+      if (!isRestart) {
+        explorationAnalyticsLogger.logStartExploration()
+      }
     }
 
     // Advance the stage, but do not notify observers since the current state can be reported
@@ -1160,6 +1264,7 @@ class ExplorationProgressController @Inject constructor(
         profileId,
         learnerId,
         exploration,
+        explorationProgress.currentClassroomId,
         explorationProgress.currentTopicId,
         explorationProgress.currentStoryId
       )
@@ -1216,12 +1321,12 @@ class ExplorationProgressController @Inject constructor(
           NEXT_AVAILABLE_HINT_INDEX ->
             stateAnalyticsLogger?.logHintUnlocked(newHelpIndex.nextAvailableHintIndex)
           LATEST_REVEALED_HINT_INDEX ->
-            stateAnalyticsLogger?.logViewHint(newHelpIndex.latestRevealedHintIndex)
+            stateAnalyticsLogger?.logRevealHint(newHelpIndex.latestRevealedHintIndex)
           SHOW_SOLUTION -> stateAnalyticsLogger?.logSolutionUnlocked()
           EVERYTHING_REVEALED -> when (helpIndex.indexTypeCase) {
-            SHOW_SOLUTION -> stateAnalyticsLogger?.logViewSolution()
+            SHOW_SOLUTION -> stateAnalyticsLogger?.logRevealSolution()
             NEXT_AVAILABLE_HINT_INDEX -> // No solution, so revealing the hint ends available help.
-              stateAnalyticsLogger?.logViewHint(helpIndex.nextAvailableHintIndex)
+              stateAnalyticsLogger?.logRevealHint(helpIndex.nextAvailableHintIndex)
             // Nothing to do in these cases.
             LATEST_REVEALED_HINT_INDEX, EVERYTHING_REVEALED, INDEXTYPE_NOT_SET, null -> {}
           }
@@ -1269,6 +1374,7 @@ class ExplorationProgressController @Inject constructor(
     /** [ControllerMessage] for initializing a new play session. */
     data class InitializeController(
       val profileId: ProfileId,
+      val classroomId: String,
       val topicId: String,
       val storyId: String,
       val explorationId: String,
@@ -1347,6 +1453,31 @@ class ExplorationProgressController @Inject constructor(
       val helpIndex: HelpIndex,
       override val sessionId: String,
       override val callbackFlow: MutableStateFlow<AsyncResult<Any?>>? = null
+    ) : ControllerMessage<Any?>()
+
+    /**
+     * [ControllerMessage] to log cases when the user has viewed a hint for the current session.
+     *
+     * Specific measures are taken to ensure that the handler for this message does not log the
+     * change if the current active session has changed (since that's generally indicative of an
+     * error--hints can't continue to change after the session has ended).
+     */
+    data class LogHintIsViewed(
+      val hintIndex: Int,
+      override val sessionId: String,
+      override val callbackFlow: MutableStateFlow<AsyncResult<Any?>>
+    ) : ControllerMessage<Any?>()
+
+    /**
+     * [ControllerMessage] to log cases when the user has viewed the solution for the current
+     * session.
+     *
+     * Specific measures are taken to ensure that the handler for this message does not log the
+     * change if the current active session has changed.
+     */
+    data class LogSolutionIsViewed(
+      override val sessionId: String,
+      override val callbackFlow: MutableStateFlow<AsyncResult<Any?>>
     ) : ControllerMessage<Any?>()
 
     /**
